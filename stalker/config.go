@@ -91,15 +91,4 @@ func (app *App) ParseTokens() {
 func (app *App) DumpRules() {
 	data, _ := json.MarshalIndent(app.Config, "", "  ")
 	fmt.Println(`"Rules": `+ string(data))
-	/*
-	for _, val := range app.Config.Folders {
-		fmt.Println("Folder:  "+ val.Location)
-		fmt.Println("Command: "+ val.Action +"\n")
-	}
-
-	for _, val := range app.Config.Files {
-		fmt.Println("File:    "+ val.Folder +"/"+ val.Name)
-		fmt.Println("Command: "+ val.Action +"\n")
-	}
-	*/
 }

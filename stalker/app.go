@@ -84,8 +84,8 @@ func (app *App) Monitor() {
 	}
 }
 
+// executeFolderRule parses Folder.Action and calls executeCommand
 func (app *App) executeFolderRule(folder string) {
-
 	for _, val := range app.Config.Folders {
 		if(folder == val.Location) {
 			app.executeCommand(val.Action)
@@ -93,6 +93,7 @@ func (app *App) executeFolderRule(folder string) {
 	}
 }
 
+// executeFileRule parses File.Action and calls executeCommand
 func (app *App) executeFileRule(file string) {
 	for _, val := range app.Config.Files {
 		name := val.Folder +"/"+ val.Name
@@ -103,10 +104,10 @@ func (app *App) executeFileRule(file string) {
 	}
 }
 
+// executeCommand executes cmd if App.Config.DryRun == false
 func (app *App) executeCommand(cmd string) {
 
 	if app.Config.DryRun == false {
-		//cmd := "cat /proc/cpuinfo | egrep '^model name' | uniq | awk '{print substr($0, index($0,$4))}'"
 		out, err := exec.Command("bash","-c",cmd).Output()
 		if err != nil {
 			fmt.Println("Failed to execute command:"+ cmd)
@@ -115,22 +116,3 @@ func (app *App) executeCommand(cmd string) {
 		fmt.Println(string(out))
 	}
 }
-/*
-func (app *App) executeCommand(command string) {
-	command = `"`+ command +`"`
-
-	if app.Config.DryRun == false {
-		cmd := exec.Command(app.Config.Shell, "-c", command)
-	    stdout, err := cmd.Output()
-
-		if err != nil {
-			fmt.Println(err.Error())
-        	return
-		}
-		fmt.Println(string(stdout))
-
-	} else {
-		fmt.Println(app.Config.Shell +" -c "+ command)
-	}
-}
-*/

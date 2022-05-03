@@ -1,47 +1,105 @@
 package stalker
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 )
 
+type Files struct {
+	Folder string `json:"fileFolder"`
+	Name   string `json:"fileName"`
+	Action string `json:"fileAction"`
+}
+
+type Folders struct {
+	Location string `json:"folderLocation"`
+	Action   string `json:"folderAction"`
+}
+
+type GitCommands struct {
+	Message string `json:"message"`
+	Add     string `json:"add"`
+	Commit  string `json:"commit"`
+	Push    string `json:"push"`
+}
+
 type Config struct {
-	Folders map[string]string
-	Files map[string]string
+	Interval time.Duration `json:"interval"`
+	Git      GitCommands   `json:"git"`
+	Folders  []Folders     `json:"folders"`
+	Files    []Files       `json:"files"`
+	Shell    string        `json:"shell"`
+    DryRun   bool          `json:"dryRun"`
 }
 
-func (app *App) ParseConfigLine(line string) {
-
-	// Ommit comments
-	if string(line[0]) != "#" {
-
-		args := strings.Split(string(line), ":")
-
-		switch args[0]{
-
-			case "folder":
-				app.Config.Folders = map[string]string{
-					args[1]: args[2],
-				}
-
-		//app.Config.Files = map[string]string{
-		//	"Shit": "doubleyeah",
-		//}
-		}
-	}
-}
-
+// ParseConfig attaches the configuration to app.Config
 func (app *App) ParseConfig() {
-	fileName := "/etc/stalker.conf"
+
+	// Convert file data to string
+	configString := app.readConfig()
+
+	// Unmarshal config json
+	var config Config
+	json.Unmarshal([]byte(configString), &config)
+	app.Config = config
+
+	// Parse config tokens
+	app.ParseTokens()
+}
+
+// readConfig returns file config as string
+func (app *App) readConfig() string {
+	fileName := "/etc/stalker.json"
 	content := ReadFile(fileName)
+	return(string(content))
+}
 
-	lines := strings.Split(string(content), "\n")
 
-	lines = lines[:len(lines)-1]
+// ParseTokens populates tokens in app.Config
+func (app *App) ParseTokens() {
 
-	fmt.Println(fileName, "has a total of", len(lines), "lines")
-	for _, line := range lines {
-		app.ParseConfigLine(line)
+	// Append git.message to git.commit
+	app.Config.Git.Commit = strings.ReplaceAll(app.Config.Git.Commit, "{git.message}", app.Config.Git.Message)
+
+	// Populate app.Config.Folders tokens
+	for key, val := range app.Config.Folders {
+		folder :=  val.Location
+		val.Action = strings.ReplaceAll(val.Action, "{cd}", "cd "+ folder)
+		val.Action = strings.ReplaceAll(val.Action, "{git.add}", app.Config.Git.Add)
+		val.Action = strings.ReplaceAll(val.Action, "{git.commit}", app.Config.Git.Commit)
+		val.Action = strings.ReplaceAll(val.Action, "{git.push}", app.Config.Git.Push)
+
+		app.Config.Folders[key].Action = val.Action
 	}
 
+	// Populate app.Config.Files tokens
+	for key, val := range app.Config.Files {
+		folder :=  val.Folder
+		val.Action = strings.ReplaceAll(val.Action, "{cd}", "cd "+ folder)
+		val.Action = strings.ReplaceAll(val.Action, "{cd}", "cd "+ folder)
+		val.Action = strings.ReplaceAll(val.Action, "{git.add}", app.Config.Git.Add)
+		val.Action = strings.ReplaceAll(val.Action, "{git.commit}", app.Config.Git.Commit)
+		val.Action = strings.ReplaceAll(val.Action, "{git.push}", app.Config.Git.Push)
+
+		app.Config.Files[key].Action = val.Action
+	}
+}
+
+// DumpRules 
+func (app *App) DumpRules() {
+	data, _ := json.MarshalIndent(app.Config, "", "  ")
+	fmt.Println(`"Rules": `+ string(data))
+	/*
+	for _, val := range app.Config.Folders {
+		fmt.Println("Folder:  "+ val.Location)
+		fmt.Println("Command: "+ val.Action +"\n")
+	}
+
+	for _, val := range app.Config.Files {
+		fmt.Println("File:    "+ val.Folder +"/"+ val.Name)
+		fmt.Println("Command: "+ val.Action +"\n")
+	}
+	*/
 }
